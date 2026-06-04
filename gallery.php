@@ -197,10 +197,6 @@ usort($photos, function ($a, $b) {
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
-
-  <footer>
-    dibuat dengan <span class="heart">&#10084;</span> · <a href="admin.php">·</a>
-  </footer>
 </div>
 
 <!-- Lightbox -->

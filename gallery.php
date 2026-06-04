@@ -100,12 +100,12 @@ usort($photos, function ($a, $b) {
   figure.shot{
     break-inside:avoid; margin:0 0 24px; position:relative; border-radius:16px; overflow:hidden;
     border:1px solid var(--line); background:var(--bg-soft); cursor:zoom-in;
-    opacity:0; transform:translateY(26px) scale(.985); animation:rise 1s cubic-bezier(.2,.7,.2,1) forwards;
+    opacity:1; animation:rise 1s cubic-bezier(.2,.7,.2,1) backwards;
     box-shadow:0 10px 30px -16px rgba(196,96,126,.35);
     transition:box-shadow .5s, transform .5s;
   }
   figure.shot:hover{box-shadow:0 22px 50px -20px rgba(196,96,126,.45); transform:translateY(-4px)}
-  @keyframes rise{to{opacity:1; transform:none}}
+  @keyframes rise{from{opacity:0; transform:translateY(26px) scale(.985)}}
   figure.shot img{display:block; width:100%; height:auto; transition:transform 1.2s cubic-bezier(.2,.7,.2,1), filter .6s; filter:saturate(1.02)}
   figure.shot:hover img{transform:scale(1.05); filter:saturate(1.08) brightness(1.02)}
   figure.shot figcaption{
@@ -286,6 +286,79 @@ usort($photos, function ($a, $b) {
     if (e.key === 'ArrowRight') next();
     if (e.key === 'ArrowLeft') prev();
   });
+
+  /* ===== Dinamis: panel galeri saling bertukar tempat — lembut & acak ===== */
+  (function () {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const grid = document.querySelector('.grid');
+    if (reduce || !grid || grid.children.length < 3) return;
+
+    const SWAP_EVERY = 4800;                 // jeda antar pertukaran (ms)
+    const SLIDE_MS   = 900;                  // durasi geser
+    const EASE       = 'cubic-bezier(.2,.7,.2,1)';
+    let paused = false;
+
+    // jeda saat kursor berada di galeri supaya nyaman dilihat & diklik
+    grid.addEventListener('pointerenter', () => { paused = true; });
+    grid.addEventListener('pointerleave', () => { paused = false; });
+
+    const rnd = n => (Math.random() * n) | 0;
+
+    // tukar dua node tanpa mengubah referensi elemen -> lightbox tetap aman
+    function swapNodes(a, b) {
+      const t = document.createComment('');
+      a.replaceWith(t);
+      b.replaceWith(a);
+      t.replaceWith(b);
+    }
+
+    function tick() {
+      if (paused || document.hidden || lb.classList.contains('open')) return;
+      const kids = [...grid.children];
+      let i = rnd(kids.length), j = rnd(kids.length);
+      if (i === j) j = (j + 1) % kids.length;
+
+      // FLIP — rekam posisi awal (First)
+      const first = kids.map(el => el.getBoundingClientRect());
+
+      swapNodes(kids[i], kids[j]);
+
+      // Last + Invert: tahan dulu di posisi lama secara instan
+      let moved = false;
+      kids.forEach((el, k) => {
+        const last = el.getBoundingClientRect();
+        const dx = first[k].left - last.left;
+        const dy = first[k].top  - last.top;
+        if (!dx && !dy) return;
+        el.style.transition = 'none';
+        el.style.transform  = `translate(${dx}px, ${dy}px)`;
+        el.style.zIndex     = '5';
+        moved = true;
+      });
+      if (!moved) return;
+
+      // Play: lepaskan ke posisi baru dengan animasi halus (transform = ringan, GPU)
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        kids.forEach(el => {
+          if (!el.style.transform) return;
+          el.style.transition = `transform ${SLIDE_MS}ms ${EASE}`;
+          el.style.transform  = '';
+        });
+      }));
+    }
+
+    // bersihkan inline style setelah geser selesai -> hover & layout normal lagi
+    grid.addEventListener('transitionend', e => {
+      if (e.propertyName !== 'transform') return;
+      const el = e.target;
+      if (!el.classList || !el.classList.contains('shot')) return;
+      el.style.transition = '';
+      el.style.transform  = '';
+      el.style.zIndex     = '';
+    });
+
+    setInterval(tick, SWAP_EVERY);
+  })();
 </script>
 </body>
 </html>

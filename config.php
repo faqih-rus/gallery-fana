@@ -6,10 +6,15 @@
 
 declare(strict_types=1);
 
+/* ===== Mode produksi: jangan bocorkan error ke pengunjung ===== */
+error_reporting(E_ALL);
+ini_set('display_errors', '0');   // set '1' saat ngoprek di lokal
+ini_set('log_errors', '1');       // error tetap tercatat di log Apache
+
 /* ===== PENGATURAN (ubah ini) ===== */
-const ADMIN_PASSWORD  = 'ganti-password-ini';   // password halaman admin
-const GALLERY_TITLE   = 'Kita';                  // nama / inisial kalian, mis. "A & V"
-const GALLERY_TAGLINE = 'catatan kecil tentang kita';
+const ADMIN_PASSWORD  = '18122005';   // password halaman admin
+const GALLERY_TITLE   = 'FAQIH & NAJWA';                  // nama / inisial kalian, mis. "A & V"
+const GALLERY_TAGLINE = 'Memori indah kita berdua';   // deskripsi singkat, mis. "Foto-foto perjalanan kami"
 const SINCE           = '';                       // mis. "2024" — kosongkan kalau tak perlu
 const MAX_FILE_SIZE   = 12 * 1024 * 1024;         // 12 MB per gambar
 const ALLOWED_EXT     = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -19,22 +24,27 @@ define('BASE_DIR',   __DIR__);
 define('UPLOAD_DIR', BASE_DIR . '/uploads');
 define('DATA_FILE',  BASE_DIR . '/data/photos.json');
 
-/* ===== Bikin folder otomatis saat pertama jalan ===== */
-foreach ([UPLOAD_DIR, dirname(DATA_FILE)] as $dir) {
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0775, true);
+/* ===== Mulai session sedini mungkin (sebelum ada output apa pun) ===== */
+session_start();
+
+/* ===== Bikin folder & file otomatis, tanpa membocorkan warning ===== */
+if (!is_dir(UPLOAD_DIR)) {
+    @mkdir(UPLOAD_DIR, 0775, true);
+}
+$dataDir = dirname(DATA_FILE);
+if (!is_dir($dataDir)) {
+    @mkdir($dataDir, 0775, true);
+}
+if (is_dir($dataDir) && is_writable($dataDir)) {
+    if (!file_exists(DATA_FILE)) {
+        @file_put_contents(DATA_FILE, '[]');
+    }
+    // Kunci folder data dari akses web langsung (Apache).
+    $htaccess = $dataDir . '/.htaccess';
+    if (!file_exists($htaccess)) {
+        @file_put_contents($htaccess, "Require all denied\nDeny from all\n");
     }
 }
-if (!file_exists(DATA_FILE)) {
-    file_put_contents(DATA_FILE, '[]');
-}
-// Kunci folder data dari akses web langsung (Apache).
-$htaccess = dirname(DATA_FILE) . '/.htaccess';
-if (!file_exists($htaccess)) {
-    @file_put_contents($htaccess, "Require all denied\nDeny from all\n");
-}
-
-session_start();
 
 /* ===== Penyimpanan data (JSON) ===== */
 function load_photos(): array
@@ -44,13 +54,14 @@ function load_photos(): array
     return is_array($data) ? $data : [];
 }
 
-function save_photos(array $photos): void
+function save_photos(array $photos): bool
 {
-    file_put_contents(
+    $ok = @file_put_contents(
         DATA_FILE,
         json_encode(array_values($photos), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         LOCK_EX
     );
+    return $ok !== false;
 }
 
 function find_photo(array $photos, string $id): ?int

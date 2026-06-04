@@ -26,88 +26,80 @@ usort($photos, function ($a, $b) {
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#13100e; --ink:#f4ebe1; --muted:#b6a596; --faint:#7c6f63;
-    --rose:#cf9180; --gold:#cba96c;
-    --line:rgba(203,169,108,.16);
+    --bg:#ffffff; --bg-light:#f8f9fa; --bg-panel:#f0f1f3;
+    --ink:#1a1a1a; --muted:#666666; --faint:#999999;
+    --accent:#4a90e2; --gold:#d4a574;
+    --line:#d0d0d0;
     --display:'Cormorant Garamond',serif; --ui:'Jost',sans-serif;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
     margin:0; color:var(--ink); font-family:var(--ui); font-weight:300;
-    background:
-      radial-gradient(1100px 600px at 75% -8%, rgba(207,145,128,.12), transparent 55%),
-      radial-gradient(900px 600px at 12% 8%, rgba(203,169,108,.08), transparent 55%),
-      var(--bg);
-    background-attachment:fixed;
-  }
-  /* Tekstur grain halus */
-  body::before{
-    content:""; position:fixed; inset:0; pointer-events:none; opacity:.04; z-index:1; mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background:var(--bg);
   }
 
   .shell{position:relative; z-index:2; max-width:1180px; margin:0 auto; padding:0 22px 110px}
 
   /* ===== HERO ===== */
-  .hero{text-align:center; padding:16vh 10px 13vh}
-  .kicker{font-size:11.5px; letter-spacing:.42em; text-transform:uppercase; color:var(--gold); margin-bottom:22px}
+  .hero{text-align:center; padding:12vh 10px 10vh}
+  .kicker{font-size:12px; letter-spacing:.42em; text-transform:uppercase; color:var(--accent); margin-bottom:24px; font-weight:600}
   .hero h1{
     font-family:var(--display); font-weight:500; font-size:clamp(56px,12vw,128px); line-height:.96;
-    margin:0; letter-spacing:.5px;
-    background:linear-gradient(180deg,#fbf3ea,#d9c2a7); -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin:0; letter-spacing:.5px; color:var(--ink);
   }
-  .hero .tag{font-family:var(--display); font-style:italic; font-size:clamp(19px,3.4vw,27px); color:var(--muted); margin-top:18px}
-  .divider{display:flex; align-items:center; justify-content:center; gap:16px; margin:34px auto 0; max-width:240px; color:var(--gold)}
-  .divider::before,.divider::after{content:""; height:1px; flex:1; background:linear-gradient(90deg,transparent,var(--line),transparent)}
-  .divider span{font-size:11px; letter-spacing:.2em}
+  .hero .tag{font-family:var(--display); font-style:italic; font-size:clamp(19px,3.4vw,27px); color:var(--muted); margin-top:20px}
+  .divider{display:flex; align-items:center; justify-content:center; gap:16px; margin:32px auto 0; max-width:240px; color:var(--accent)}
+  .divider::before,.divider::after{content:""; height:2px; flex:1; background:var(--line)}
+  .divider span{font-size:12px; letter-spacing:.2em; font-weight:600}
 
   /* ===== GRID (masonry via columns) ===== */
-  .grid{column-count:3; column-gap:20px}
+  .grid{column-count:3; column-gap:24px}
   @media(max-width:900px){.grid{column-count:2}}
   @media(max-width:560px){.grid{column-count:1}}
 
   figure.shot{
-    break-inside:avoid; margin:0 0 20px; position:relative; border-radius:14px; overflow:hidden;
-    border:1px solid var(--line); background:#0d0b09; cursor:zoom-in;
+    break-inside:avoid; margin:0 0 24px; position:relative; border-radius:12px; overflow:hidden;
+    border:1px solid var(--line); background:var(--bg-light); cursor:zoom-in;
     opacity:0; transform:translateY(22px); animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
   }
   @keyframes rise{to{opacity:1; transform:none}}
-  figure.shot img{display:block; width:100%; height:auto; transition:transform 1.1s cubic-bezier(.2,.7,.2,1), filter .6s; filter:saturate(.96) brightness(.97)}
-  figure.shot:hover img{transform:scale(1.045); filter:saturate(1.04) brightness(1.02)}
+  figure.shot img{display:block; width:100%; height:auto; transition:transform 1.1s cubic-bezier(.2,.7,.2,1), filter .6s; filter:saturate(1) brightness(1)}
+  figure.shot:hover img{transform:scale(1.03); filter:saturate(1.05) brightness(1.02)}
   figure.shot figcaption{
-    position:absolute; inset:auto 0 0 0; padding:46px 18px 16px; color:#fff;
-    background:linear-gradient(0deg, rgba(10,8,6,.92), rgba(10,8,6,.55) 55%, transparent);
+    position:absolute; inset:auto 0 0 0; padding:48px 18px 18px; color:var(--ink);
+    background:linear-gradient(0deg, rgba(255,255,255,.98), rgba(255,255,255,.88) 55%, transparent);
     transform:translateY(8px); opacity:0; transition:opacity .45s, transform .45s;
   }
   figure.shot:hover figcaption{opacity:1; transform:none}
-  figcaption .date{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); margin-bottom:5px}
-  figcaption .cap{font-family:var(--display); font-style:italic; font-size:20px; line-height:1.25}
-  figcaption .loc{font-size:12px; color:var(--muted); margin-top:5px}
+  figcaption .date{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; font-weight:600}
+  figcaption .cap{font-family:var(--display); font-style:italic; font-size:20px; line-height:1.25; color:var(--ink)}
+  figcaption .loc{font-size:13px; color:var(--muted); margin-top:6px}
 
   /* ===== EMPTY ===== */
-  .empty{text-align:center; padding:8vh 0; color:var(--faint)}
-  .empty .mark{font-size:38px; color:var(--gold)}
-  .empty p{font-family:var(--display); font-style:italic; font-size:24px; margin:14px 0 0}
-  .empty a{color:var(--gold)}
+  .empty{text-align:center; padding:10vh 0; color:var(--muted)}
+  .empty .mark{font-size:42px; color:var(--accent)}
+  .empty p{font-family:var(--display); font-style:italic; font-size:24px; margin:16px 0 0; color:var(--ink)}
+  .empty a{color:var(--accent); font-weight:600}
 
   /* ===== FOOTER ===== */
-  footer{text-align:center; margin-top:90px; color:var(--faint); font-size:12px; letter-spacing:.06em}
-  footer .heart{color:var(--rose)}
+  footer{text-align:center; margin-top:90px; color:var(--muted); font-size:13px; letter-spacing:.06em}
+  footer .heart{color:#e74c3c}
 
   /* ===== LIGHTBOX ===== */
   .lb{position:fixed; inset:0; z-index:50; display:none; place-items:center; padding:30px;
-      background:rgba(8,6,5,.92); backdrop-filter:blur(6px); cursor:zoom-out}
+      background:rgba(255,255,255,.96); backdrop-filter:blur(6px); cursor:zoom-out}
   .lb.open{display:grid; animation:fade .35s ease}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   .lb figure{margin:0; max-width:92vw; max-height:90vh; text-align:center; cursor:auto}
-  .lb img{max-width:92vw; max-height:76vh; border-radius:10px; box-shadow:0 30px 80px rgba(0,0,0,.6)}
-  .lb .info{margin-top:16px; color:var(--ink)}
-  .lb .info .date{font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold)}
-  .lb .info .cap{font-family:var(--display); font-style:italic; font-size:24px; margin-top:6px}
-  .lb .info .loc{font-size:13px; color:var(--muted); margin-top:4px}
-  .lb button{position:fixed; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--ink); width:50px; height:50px; border-radius:50%; font-size:22px; cursor:pointer; transition:background .2s}
-  .lb button:hover{background:rgba(203,169,108,.22)}
+  .lb img{max-width:92vw; max-height:76vh; border-radius:10px; box-shadow:0 10px 40px rgba(0,0,0,.15)}
+  .lb .info{margin-top:20px; color:var(--ink)}
+  .lb .info .date{font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); font-weight:600}
+  .lb .info .cap{font-family:var(--display); font-style:italic; font-size:24px; margin-top:8px; color:var(--ink)}
+  .lb .info .loc{font-size:14px; color:var(--muted); margin-top:6px}
+  .lb button{position:fixed; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.95); border:1px solid var(--line); color:var(--ink); width:50px; height:50px; border-radius:50%; font-size:22px; cursor:pointer; transition:background .2s; font-weight:600}
+  .lb button:hover{background:var(--bg-light); color:var(--accent); border-color:var(--accent)}
   .lb .prev{left:22px} .lb .next{right:22px}
   .lb .close{top:22px; right:22px; transform:none; width:44px; height:44px; font-size:20px}
   @media(max-width:560px){.lb button{display:none} .lb .close{display:block}}

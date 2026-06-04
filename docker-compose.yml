@@ -1,0 +1,21 @@
+services:
+  galeri-romantis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: galeri-romantis:latest
+    container_name: galeri-romantis
+    restart: unless-stopped
+    ports:
+      # host:container  -> ganti 8090 ke port publik yang kamu mau
+      - "8090:80"
+    volumes:
+      # PENTING: data pengguna disimpan di HOST, jadi tidak hilang saat rebuild / git pull.
+      # Kalau APP_NAME di deploy.sh diganti, samakan juga path di bawah ini.
+      - /var/lib/galeri-romantis/uploads:/var/www/html/uploads
+      - /var/lib/galeri-romantis/data:/var/www/html/data
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/')?0:1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -299,7 +299,7 @@ $logged  = is_logged_in();
       <div class="items">
         <?php foreach ($photos as $p): ?>
           <div class="item">
-            <div class="thumb" style="background-image:url('uploads/<?= e($p['filename']) ?>')"></div>
+            <div class="thumb" style="background-image:url('thumb.php?f=<?= e(rawurlencode($p['filename'])) ?>&amp;s=480')"></div>
             <div class="body">
               <?php if (!empty($p['date'])): ?>
                 <div class="meta"><?= e(pretty_date($p['date'])) ?></div>

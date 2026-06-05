@@ -4,6 +4,13 @@ FROM php:8.4-apache
 # Modul Apache yang dipakai
 RUN a2enmod rewrite headers
 
+# Ekstensi PHP: GD (resize thumbnail) + EXIF (perbaiki rotasi foto HP)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype6-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
+    && docker-php-ext-install -j"$(nproc)" gd exif \
+    && rm -rf /var/lib/apt/lists/*
+
 # Konfigurasi app: gallery.php sebagai index, proteksi folder data & uploads
 COPY apache-app.conf /etc/apache2/conf-enabled/zz-app.conf
 

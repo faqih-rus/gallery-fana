@@ -72,23 +72,23 @@ usort($photos, function ($a, $b) {
     100%{transform:translateY(-118vh) translateX(var(--dx)) rotate(var(--rot)); opacity:0}
   }
 
-  .shell{position:relative; z-index:3; max-width:1180px; margin:0 auto; padding:0 18px 110px}
+  .shell{position:relative; z-index:3; max-width:1060px; margin:0 auto; padding:0 clamp(16px,4vw,40px) 100px}
 
   /* ===== HERO ===== */
-  .hero{text-align:center; padding:11vh 10px 7vh}
-  .kicker{font-size:11px; letter-spacing:.5em; text-transform:uppercase; color:var(--rose-deep); margin-bottom:26px; font-weight:500; opacity:0; animation:soft 1.2s ease .1s forwards}
+  .hero{text-align:center; padding:9vh 10px 5.5vh}
+  .kicker{font-size:11px; letter-spacing:.5em; text-transform:uppercase; color:var(--rose-deep); margin-bottom:22px; font-weight:500; opacity:0; animation:soft 1.2s ease .1s forwards}
   .hero h1{
-    font-family:var(--display); font-weight:500; font-size:clamp(50px,11.5vw,124px); line-height:.98;
+    font-family:var(--display); font-weight:500; font-size:clamp(46px,8.5vw,84px); line-height:1;
     margin:0; letter-spacing:1px; color:var(--ink);
     opacity:0; animation:soft 1.3s ease .25s forwards;
   }
   .hero .tag{
-    font-family:var(--script); font-size:clamp(26px,5vw,46px); color:var(--rose-deep);
-    margin-top:14px; line-height:1.1; opacity:0; animation:soft 1.4s ease .45s forwards;
+    font-family:var(--script); font-size:clamp(24px,4.2vw,38px); color:var(--rose-deep);
+    margin-top:12px; line-height:1.1; opacity:0; animation:soft 1.4s ease .45s forwards;
   }
   @keyframes soft{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
 
-  .divider{display:flex; align-items:center; justify-content:center; gap:18px; margin:30px auto 0; max-width:260px; color:var(--rose); opacity:0; animation:soft 1.5s ease .65s forwards}
+  .divider{display:flex; align-items:center; justify-content:center; gap:18px; margin:26px auto 0; max-width:240px; color:var(--rose); opacity:0; animation:soft 1.5s ease .65s forwards}
   .divider::before,.divider::after{content:""; height:1px; flex:1; background:linear-gradient(90deg,transparent,var(--line),transparent)}
   .divider .beat{width:20px; height:20px; color:var(--rose); animation:beat 2.4s ease-in-out infinite}
   @keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.18)}28%{transform:scale(1)}42%{transform:scale(1.12)}}
@@ -96,9 +96,10 @@ usort($photos, function ($a, $b) {
   .count-line{text-align:center; color:var(--muted); font-size:12px; letter-spacing:.22em; text-transform:uppercase; margin:0 0 22px}
 
   /* ===== GRID ala Instagram — kotak rapat, kecil-kecil ===== */
-  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:5px}
-  @media(min-width:560px){.grid{grid-template-columns:repeat(4,1fr); gap:9px}}
-  @media(min-width:920px){.grid{grid-template-columns:repeat(5,1fr); gap:12px}}
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+  @media(min-width:600px){.grid{grid-template-columns:repeat(4,1fr); gap:9px}}
+  @media(min-width:860px){.grid{grid-template-columns:repeat(5,1fr); gap:10px}}
+  @media(min-width:1120px){.grid{grid-template-columns:repeat(6,1fr); gap:11px}}
 
   figure.shot{
     margin:0; position:relative; aspect-ratio:1/1; overflow:hidden;
@@ -228,7 +229,7 @@ usort($photos, function ($a, $b) {
                 data-full="<?= e($full) ?>" data-cap="<?= $cap ?>" data-date="<?= $date ?>" data-loc="<?= $loc ?>">
           <img src="<?= e($t320) ?>"
                srcset="<?= e($t320) ?> 320w, <?= e($t640) ?> 640w"
-               sizes="(min-width:920px) 20vw, (min-width:560px) 25vw, 33vw"
+               sizes="(min-width:1120px) 165px, (min-width:860px) 19vw, (min-width:600px) 24vw, 32vw"
                alt="<?= $cap ?: 'kenangan' ?>" loading="lazy" decoding="async">
           <?php if ($cap || $date): ?>
           <div class="ov">

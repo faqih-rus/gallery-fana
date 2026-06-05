@@ -108,10 +108,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_logged_in()) {
         header('Location: admin.php');
         exit;
     }
+
+    if ($action === 'delete_comment') {
+        $all = load_comments();
+        $pid = (string) ($_POST['photo'] ?? '');
+        $cid = (string) ($_POST['cid'] ?? '');
+        if (isset($all[$pid]) && is_array($all[$pid])) {
+            $all[$pid] = array_values(array_filter(
+                $all[$pid],
+                fn($c) => ($c['id'] ?? '') !== $cid
+            ));
+            if (empty($all[$pid])) {
+                unset($all[$pid]);
+            }
+            save_comments($all);
+            flash('Komentar dihapus.');
+        }
+        header('Location: admin.php');
+        exit;
+    }
 }
 
 $photos = load_photos();
 usort($photos, fn($a, $b) => strcmp($b['uploaded_at'] ?? '', $a['uploaded_at'] ?? ''));
+$allComments = load_comments();
 $flashes = take_flashes();
 $logged  = is_logged_in();
 ?>
@@ -322,6 +342,30 @@ $logged  = is_logged_in();
                   <input type="text" name="location" value="<?= e($p['location']) ?>" placeholder="Lokasi">
                   <button class="btn sm" type="submit">Simpan</button>
                 </form>
+              </details>
+
+              <?php $cs = comments_for($allComments, $p['id']); ?>
+              <details>
+                <summary>Komentar (<?= count($cs) ?>)</summary>
+                <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+                  <?php if (!$cs): ?>
+                    <div style="color:var(--faint);font-size:13px;font-style:italic">Belum ada komentar.</div>
+                  <?php else: foreach ($cs as $c): ?>
+                    <div style="background:var(--bg-light);border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                        <span style="font-size:12px;color:var(--accent);font-weight:500"><?= e($c['name'] ?? 'Anonim') ?></span>
+                        <form method="post" onsubmit="return confirm('Hapus komentar ini?')" style="margin:0">
+                          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                          <input type="hidden" name="action" value="delete_comment">
+                          <input type="hidden" name="photo" value="<?= e($p['id']) ?>">
+                          <input type="hidden" name="cid" value="<?= e($c['id'] ?? '') ?>">
+                          <button type="submit" title="Hapus komentar" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0">&times; hapus</button>
+                        </form>
+                      </div>
+                      <div style="font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word;margin-top:2px"><?= e($c['body'] ?? '') ?></div>
+                    </div>
+                  <?php endforeach; endif; ?>
+                </div>
               </details>
 
               <div class="row">

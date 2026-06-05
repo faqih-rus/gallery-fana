@@ -127,3 +127,33 @@ function pretty_date(string $iso): string
               'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     return (int) date('j', $ts) . ' ' . $bulan[(int) date('n', $ts)] . ' ' . date('Y', $ts);
 }
+
+/* ===== Komentar (penyimpanan JSON, sederhana — TANPA database) =====
+   Tambahan baru; tidak mengubah logika foto yang sudah ada. Disimpan di folder
+   data/ yang sudah dikunci dari akses web langsung. */
+define('COMMENTS_FILE', BASE_DIR . '/data/comments.json');
+const MAX_COMMENT_LEN = 600;   // batas panjang isi komentar
+const MAX_NAME_LEN    = 40;    // batas panjang nama
+
+function load_comments(): array
+{
+    $raw  = @file_get_contents(COMMENTS_FILE);
+    $data = json_decode($raw ?: '{}', true);
+    return is_array($data) ? $data : [];
+}
+
+function save_comments(array $all): bool
+{
+    $ok = @file_put_contents(
+        COMMENTS_FILE,
+        json_encode($all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        LOCK_EX
+    );
+    return $ok !== false;
+}
+
+/* Ambil daftar komentar satu foto (dari struktur { "<id_foto>": [ ... ] }). */
+function comments_for(array $all, string $pid): array
+{
+    return isset($all[$pid]) && is_array($all[$pid]) ? $all[$pid] : [];
+}

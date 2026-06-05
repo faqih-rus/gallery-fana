@@ -33,11 +33,15 @@ if ($f === '' || strpbrk($f, "/\\") !== false
     exit;
 }
 
-/* Mode & ukuran: s = kotak (crop), w = muat sisi terpanjang. */
-$mode = 'w';
+/* Mode & ukuran:
+   s = kotak (square crop)       -> grid kotak (mobile / admin)
+   w = batas LEBAR (rasio asli)  -> grid masonry (desktop)
+   m = batas sisi TERPANJANG     -> tampilan detail (lightbox) */
+$mode = 'm';
 $size = 0;
-if (isset($_GET['s'])) { $mode = 's'; $size = (int) $_GET['s']; }
+if (isset($_GET['s']))     { $mode = 's'; $size = (int) $_GET['s']; }
 elseif (isset($_GET['w'])) { $mode = 'w'; $size = (int) $_GET['w']; }
+elseif (isset($_GET['m'])) { $mode = 'm'; $size = (int) $_GET['m']; }
 $size = max(80, min(2000, $size ?: 640));
 
 function mime_for(string $ext): string
@@ -135,7 +139,14 @@ if ($mode === 's') {
     $out = min($size, $side);               // jangan perbesar melebihi aslinya
     $dw = $dh = $out;
     $srcW = $srcH = $side;
-} else {
+} elseif ($mode === 'w') {
+    $scale = min(1.0, $size / $sw);         // batasi lebar, tinggi ikut rasio
+    $sx = $sy = 0;
+    $dw = max(1, (int) round($sw * $scale));
+    $dh = max(1, (int) round($sh * $scale));
+    $srcW = $sw;
+    $srcH = $sh;
+} else { // 'm' — batasi sisi terpanjang
     $long  = max($sw, $sh);
     $scale = min(1.0, $size / $long);       // jangan perbesar
     $sx = $sy = 0;

@@ -1,0 +1,29 @@
+# =============================================================================
+#  docker-compose.dvlp.yml — Deploy DEVELOPMENT (branch dvlp)
+#  Berjalan berdampingan dengan produksi (docker-compose.yml):
+#    - Container & image terpisah  (suffix -dvlp)
+#    - Port host 8095              (produksi: 8094)
+#    - Data folder SAMA dengan produksi (/var/lib/gallery-fana) -> sinkron
+#  Jalankan via ./deploy-dvlp.sh
+# =============================================================================
+services:
+  galeri-romantis-dvlp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: galeri-romantis:dvlp
+    container_name: galeri-romantis-dvlp
+    restart: unless-stopped
+    ports:
+      # host:container  -> samakan dengan HOST_PORT di deploy-dvlp.sh
+      - "8095:80"
+    volumes:
+      # DIBAGI dengan produksi: upload/komentar di dev langsung terlihat di prod.
+      # (Risiko: dev bisa mengubah data prod — sesuai keputusan "shared".)
+      - /var/lib/gallery-fana/uploads:/var/www/html/uploads
+      - /var/lib/gallery-fana/data:/var/www/html/data
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/')?0:1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

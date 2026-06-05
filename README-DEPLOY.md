@@ -4,10 +4,12 @@ Aplikasi PHP (bukan statis), jadi disajikan oleh **Apache + mod_php** di dalam s
 kontainer (`php:8.4-apache`), di belakang **Host Nginx Reverse Proxy + SSL**.
 
 ## File deploy
-- `Dockerfile` — image PHP 8.4 + Apache.
+- `Dockerfile` — image PHP 8.4 + Apache (sudah termasuk GD + EXIF untuk thumbnail).
 - `apache-app.conf` — `gallery.php` jadi halaman utama, kunci folder `data/`, matikan PHP di `uploads/`.
-- `docker-compose.yml` — build + port + **volume data persisten**.
-- `deploy.sh` — pull → build → up → reverse proxy + SSL.
+- `docker-compose.yml` — **produksi** (port 8094) — build + port + volume data persisten.
+- `deploy.sh` — produksi: pull branch `cinta` → build → up → reverse proxy + SSL.
+- `docker-compose.dvlp.yml` — **development** (port 8095, container `-dvlp`, data dibagi dengan prod).
+- `deploy-dvlp.sh` — development: pull branch `dvlp` → build → up → proxy `fana-dvlp.luvforever.net`.
 - `.dockerignore`, `.gitignore` — jaga data & file deploy tidak ikut.
 
 ## Sekali jalan
@@ -22,22 +24,41 @@ kontainer (`php:8.4-apache`), di belakang **Host Nginx Reverse Proxy + SSL**.
    Galeri: `https://<domain>/` · Admin: `https://<domain>/admin.php`
 
 ## Data tidak hilang saat update (PENTING)
-Foto (`uploads/`) dan database (`data/photos.json`) disimpan di **host**, bukan di
-dalam image:
+Foto (`uploads/`), database (`data/photos.json`), dan komentar (`data/comments.json`)
+disimpan di **host**, bukan di dalam image:
 ```
-/var/lib/galeri-romantis/uploads
-/var/lib/galeri-romantis/data
+/var/lib/gallery-fana/uploads
+/var/lib/gallery-fana/data
 ```
 `deploy.sh` membuat folder ini dan men-set kepemilikan ke `www-data` (uid 33)
 sebelum kontainer naik. Rebuild / `git pull` **tidak** menyentuhnya.
-> Kalau mengganti `APP_NAME`, samakan juga path volume di `docker-compose.yml`.
+> Path ini harus sama di `deploy.sh` (`DATA_ROOT`) dan `docker-compose.yml` (volume).
+> **Development memakai folder yang sama** sehingga data dev & prod sinkron.
 
 ## Update tiap ada perubahan di branch
 Cukup jalankan ulang di server:
 ```bash
 ./deploy.sh
 ```
-Ia akan `git pull` branch `main`, rebuild image, dan restart kontainer — data tetap aman.
+Ia akan `git pull` branch `cinta`, rebuild image, dan restart kontainer — data tetap aman.
+
+## Development berdampingan (branch `dvlp`)
+Lingkungan dev jalan **bersamaan** dengan prod: container & image terpisah (`-dvlp`),
+port **8095**, domain `fana-dvlp.luvforever.net`, tapi **berbagi folder data yang sama**
+(`/var/lib/gallery-fana`) sehingga upload/komentar langsung sinkron dengan prod.
+```bash
+# di server (checkout terpisah otomatis di /var/www/gallery-fana-dvlp)
+chmod +x deploy-dvlp.sh
+./deploy-dvlp.sh                 # pull branch dvlp + build + up (port 8095)
+./deploy-dvlp.sh logs|status|down
+```
+Cek keduanya hidup: `docker ps` → `galeri-romantis` (prod) **dan** `galeri-romantis-dvlp` (dev).
+
+**Alur git:** kerja di `dvlp` → uji di `fana-dvlp` → kalau oke, merge `dvlp` → `cinta`
+(prod). Sesekali rebase/merge `cinta` → `dvlp` agar dev tetap selaras.
+
+> ⚠️ Data dibagi: aksi di dev (hapus foto/komentar) **langsung** mengubah data prod.
+> Kalau ingin aman, pisahkan `DATA_ROOT` dev ke folder lain lalu sinkron manual.
 
 Mau otomatis tanpa SSH manual? Pilih salah satu:
 - **Cron** (poll tiap 5 menit, deploy kalau ada commit baru):
@@ -50,7 +71,7 @@ Mau otomatis tanpa SSH manual? Pilih salah satu:
 ## Backup
 Cukup arsipkan folder host:
 ```bash
-tar czf galeri-backup-$(date +%F).tgz /var/lib/galeri-romantis
+tar czf galeri-backup-$(date +%F).tgz /var/lib/gallery-fana
 ```
 
 ## Catatan

@@ -1,40 +1,44 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  deploy.sh — galeri-romantis
-#  Deploy aplikasi PHP (Apache + mod_php) lewat Docker, di belakang
-#  Host Nginx Reverse Proxy + SSL (Let's Encrypt / Certbot).
+#  deploy-dvlp.sh — galeri-romantis (DEVELOPMENT / branch dvlp)
+#  Kembaran deploy.sh untuk lingkungan dev. Berjalan BERDAMPINGAN dengan
+#  produksi: container & image terpisah (-dvlp), port 8095, domain dev,
+#  TAPI berbagi folder data yang sama (/var/lib/gallery-fana).
 #
 #  Cara pakai:
-#     chmod +x deploy.sh
-#     ./deploy.sh            # pull terbaru + build + jalankan
-#     ./deploy.sh --no-pull  # skip git pull (build dari kode lokal)
-#     ./deploy.sh down       # matikan container
-#     ./deploy.sh logs       # lihat log
-#     ./deploy.sh status     # cek status
+#     chmod +x deploy-dvlp.sh
+#     ./deploy-dvlp.sh            # pull branch dvlp + build + jalankan
+#     ./deploy-dvlp.sh --no-pull  # skip git pull (build dari kode lokal)
+#     ./deploy-dvlp.sh down       # matikan container dev
+#     ./deploy-dvlp.sh logs       # lihat log dev
+#     ./deploy-dvlp.sh status     # cek status dev
 # =============================================================================
 
 set -Eeuo pipefail
 
 # --------------------------- Konfigurasi (EDIT INI) --------------------------
-APP_NAME="gallery-fana"
-APP_DIR="/var/www/galeri-romantis"
-REPO_URL="https://github.com/USER/galeri-romantis.git"   # ganti
-HOST_PORT="8094"                       # samakan dengan ports di docker-compose.yml
+APP_NAME="gallery-fana-dvlp"
+APP_DIR="/var/www/gallery-fana-dvlp"                      # checkout TERPISAH dari prod
+REPO_URL="https://github.com/faqih-rus/gallery-fana.git"
+HOST_PORT="8095"                       # samakan dengan ports di docker-compose.dvlp.yml
 PUBLIC_IP="0.0.0.0"                    # ganti dengan IP server (info saja)
-DOMAIN="fana.luvforever.net"           # ganti dengan domainmu
-GIT_BRANCH="cinta"
+DOMAIN="fana-dvlp.luvforever.net"      # domain dev
+GIT_BRANCH="dvlp"
 SSL_EMAIL="faqihstrt@gmail.com"         # email notifikasi Let's Encrypt
 
-# Lokasi data persisten di HOST (HARUS sama dengan path volume di docker-compose.yml)
-DATA_ROOT="/var/lib/${APP_NAME}"
+# File compose khusus dev (container/image/port terpisah).
+COMPOSE_FILE="docker-compose.dvlp.yml"
+
+# Data persisten di HOST — SENGAJA dibagi dengan produksi (bukan /var/lib/${APP_NAME}).
+DATA_ROOT="/var/lib/gallery-fana"
 WWW_DATA_UID="33"                      # uid www-data di image php:apache (Debian)
 
 # --------------------------- Util warna --------------------------------------
 C_RST="\033[0m"; C_GRN="\033[1;32m"; C_YEL="\033[1;33m"; C_RED="\033[1;31m"; C_BLU="\033[1;34m"
-log()  { echo -e "${C_BLU}[ deploy ]${C_RST} $*"; }
-ok()   { echo -e "${C_GRN}[   ok   ]${C_RST} $*"; }
-warn() { echo -e "${C_YEL}[  warn  ]${C_RST} $*"; }
-err()  { echo -e "${C_RED}[  err   ]${C_RST} $*" >&2; }
+log()  { echo -e "${C_BLU}[ deploy-dvlp ]${C_RST} $*"; }
+ok()   { echo -e "${C_GRN}[     ok     ]${C_RST} $*"; }
+warn() { echo -e "${C_YEL}[    warn    ]${C_RST} $*"; }
+err()  { echo -e "${C_RED}[    err     ]${C_RST} $*" >&2; }
 trap 'err "Gagal pada baris $LINENO. Deploy dibatalkan."' ERR
 
 # --------------------------- Deteksi compose ---------------------------------
@@ -64,13 +68,13 @@ check_docker() {
 }
 
 # --------------------------- Sub-command -------------------------------------
-do_down()   { cd "$APP_DIR"; log "Mematikan container..."; $SUDO $COMPOSE down; ok "Container dimatikan."; }
-do_logs()   { cd "$APP_DIR"; $SUDO $COMPOSE logs -f --tail=100; }
+do_down()   { cd "$APP_DIR"; log "Mematikan container dev..."; $SUDO $COMPOSE -f "$COMPOSE_FILE" down; ok "Container dev dimatikan."; }
+do_logs()   { cd "$APP_DIR"; $SUDO $COMPOSE -f "$COMPOSE_FILE" logs -f --tail=100; }
 do_status() {
-  cd "$APP_DIR"; $SUDO $COMPOSE ps; echo
+  cd "$APP_DIR"; $SUDO $COMPOSE -f "$COMPOSE_FILE" ps; echo
   log "Cek HTTP lokal (port ${HOST_PORT})..."
   if curl -fsS -o /dev/null -w "HTTP %{http_code}\n" "http://127.0.0.1:${HOST_PORT}/"; then
-    ok "Aplikasi merespons di port ${HOST_PORT}."
+    ok "Aplikasi dev merespons di port ${HOST_PORT}."
   else
     warn "Belum ada respons di port ${HOST_PORT}."
   fi
@@ -82,6 +86,8 @@ sync_repo() {
     warn "Belum ada repo di $APP_DIR — meng-clone..."
     $SUDO mkdir -p "$APP_DIR"
     $SUDO git clone "$REPO_URL" "$APP_DIR"
+    cd "$APP_DIR"
+    $SUDO git checkout "$GIT_BRANCH"
   elif [ "${DO_PULL:-1}" = "1" ]; then
     log "git pull origin ${GIT_BRANCH}..."
     cd "$APP_DIR"
@@ -97,7 +103,7 @@ sync_repo() {
 verify_repo_files() {
   cd "$APP_DIR"
   local missing=0
-  for f in Dockerfile docker-compose.yml apache-app.conf gallery.php admin.php config.php; do
+  for f in Dockerfile "$COMPOSE_FILE" apache-app.conf gallery.php admin.php config.php; do
     if [ ! -f "$f" ]; then err "File wajib hilang di repo: $f"; missing=1; fi
   done
   [ "$missing" = "0" ] || { err "Lengkapi file di repo lalu jalankan lagi."; exit 1; }
@@ -105,19 +111,19 @@ verify_repo_files() {
 
 # --------------------------- Folder data persisten (HOST) --------------------
 prepare_data_dirs() {
-  log "Menyiapkan folder data persisten di host..."
+  log "Menyiapkan folder data persisten (DIBAGI dengan prod) di host..."
   $SUDO mkdir -p "${DATA_ROOT}/uploads" "${DATA_ROOT}/data"
   # Apache di kontainer berjalan sebagai www-data (uid 33) → harus bisa menulis.
   $SUDO chown -R "${WWW_DATA_UID}:${WWW_DATA_UID}" "${DATA_ROOT}/uploads" "${DATA_ROOT}/data"
-  ok "Data persisten siap di ${DATA_ROOT} (uploads, data) — aman dari rebuild."
+  ok "Data persisten siap di ${DATA_ROOT} (uploads, data) — sama dengan produksi."
 }
 
 # --------------------------- Build & up --------------------------------------
 build_up() {
   cd "$APP_DIR"
-  log "Build image & menjalankan container..."
-  $SUDO $COMPOSE up -d --build
-  ok "Container berjalan."
+  log "Build image & menjalankan container dev..."
+  $SUDO $COMPOSE -f "$COMPOSE_FILE" up -d --build
+  ok "Container dev berjalan."
 }
 
 # --------------------------- Verifikasi --------------------------------------
@@ -127,15 +133,15 @@ verify() {
   local code
   code="$(curl -fsS -o /dev/null -w "%{http_code}" "http://127.0.0.1:${HOST_PORT}/" || echo "000")"
   if [ "$code" = "200" ]; then
-    ok "Aplikasi sehat (HTTP 200) di port ${HOST_PORT}."
+    ok "Aplikasi dev sehat (HTTP 200) di port ${HOST_PORT}."
   else
-    warn "Respons HTTP: ${code}. Cek log: ./deploy.sh logs"
+    warn "Respons HTTP: ${code}. Cek log: ./deploy-dvlp.sh logs"
   fi
 }
 
 # --------------------------- Reverse Proxy & SSL (Host) ----------------------
 setup_proxy_and_ssl() {
-  log "Menyiapkan Reverse Proxy & SSL di Host Nginx..."
+  log "Menyiapkan Reverse Proxy & SSL di Host Nginx (dev)..."
   if ! command -v nginx >/dev/null 2>&1; then
     warn "Nginx tidak terdeteksi di host. Lewati konfigurasi proxy."
     return
@@ -164,12 +170,12 @@ EOF
 
   [ -L "$SYMLINK" ] || $SUDO ln -s "$CONF_FILE" "$SYMLINK"
   $SUDO nginx -t && $SUDO systemctl reload nginx
-  ok "Nginx Reverse Proxy siap."
+  ok "Nginx Reverse Proxy (dev) siap."
 
   if command -v certbot >/dev/null 2>&1; then
     log "Request SSL via Certbot untuk ${DOMAIN}..."
     $SUDO certbot --nginx -d "${DOMAIN}" --non-interactive --agree-tos -m "${SSL_EMAIL}" --redirect \
-      || warn "Gagal request SSL. Pastikan DNS sudah mengarah ke server & sudah propagasi."
+      || warn "Gagal request SSL. Pastikan DNS ${DOMAIN} sudah mengarah ke server & propagasi."
   else
     warn "Certbot belum ada. Install: sudo apt install certbot python3-certbot-nginx"
   fi
@@ -179,15 +185,16 @@ EOF
 summary() {
   echo
   echo -e "${C_GRN}=============================================================${C_RST}"
-  echo -e "${C_GRN}  DEPLOY SELESAI — ${APP_NAME}${C_RST}"
+  echo -e "${C_GRN}  DEPLOY DEV SELESAI — ${APP_NAME}${C_RST}"
   echo -e "${C_GRN}=============================================================${C_RST}"
   echo -e "  Lokal Container : http://127.0.0.1:${HOST_PORT}"
   echo -e "  Publik          : https://${DOMAIN}"
   echo -e "  Galeri          : https://${DOMAIN}/"
   echo -e "  Admin           : https://${DOMAIN}/admin.php"
-  echo -e "  Data persisten  : ${DATA_ROOT}/{uploads,data}"
+  echo -e "  Data persisten  : ${DATA_ROOT}/{uploads,data}  (SAMA dengan prod)"
+  echo -e "  Branch          : ${GIT_BRANCH}"
   echo
-  echo -e "  ./deploy.sh logs | status | down"
+  echo -e "  ./deploy-dvlp.sh logs | status | down"
   echo -e "${C_GRN}=============================================================${C_RST}"
 }
 
@@ -207,7 +214,7 @@ main() {
   esac
   for arg in "$@"; do [ "$arg" = "--no-pull" ] && DO_PULL=0; done
 
-  log "Mulai deploy ${APP_NAME}..."
+  log "Mulai deploy DEV ${APP_NAME} (branch ${GIT_BRANCH})..."
   sync_repo
   verify_repo_files
   prepare_data_dirs
